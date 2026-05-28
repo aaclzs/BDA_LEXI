@@ -400,7 +400,7 @@ body {
   border: 0;
   background: transparent;
   color: #646161;
-  padding: 8px 6px 8px 12px;
+  padding: 8px 6px 8px 2px;
   text-align: left;
   cursor: pointer;
   font-size: 12px;
@@ -414,7 +414,7 @@ body {
 .assistant-tab-btn.active::after {
   content: "";
   position: absolute;
-  left: 8px;
+  left: 2px;
   right: 8px;
   bottom: 0;
   height: 2px;
