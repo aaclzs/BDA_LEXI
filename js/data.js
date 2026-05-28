@@ -131,6 +131,7 @@ retreived,15,Pure Typo Candidate,retrieved
 memmory,14,Pure Typo Candidate,memory`;
 
   const fallbackTypos = {
+    usr: "user",
     scren: "screen",
     querry: "query",
     databse: "database",

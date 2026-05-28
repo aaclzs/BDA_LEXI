@@ -156,7 +156,6 @@ const fetchConfig = async () => {
     alter: ["update"],
 
     // User related
-    usr: ["user"],
     client: ["user"],
     member: ["user"],
     account: ["user"],
