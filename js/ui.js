@@ -93,10 +93,11 @@
     return `
       <div class="popup-top">
         <span class="popup-label typo">Possible Typo</span>
-        <button class="popup-close" data-action="dismiss" aria-label="Dismiss suggestion">✕</button>
+        <button class="popup-close" data-action="close" aria-label="Close suggestion popup">✕</button>
       </div>
       <div class="popup-suggest"><strong>${escapeHtml(resolvedSuggestion)}</strong></div>
       <button class="popup-accept" data-action="accept">Accept</button>
+      <button class="term-dismiss-btn" data-action="dismiss">Dismiss</button>
     `;
   }
 
