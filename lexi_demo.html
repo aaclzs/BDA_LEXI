@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LEXI VS Code Simulator</title>
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <div class="titlebar">
+      <div class="window-controls">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <div>project-utils.js - Visual Studio Code</div>
+      <div style="width:42px;"></div>
+    </div>
+
+    <div class="main">
+      <aside class="sidebar">
+        <h3>Explorer</h3>
+        <div class="tree-line">project/</div>
+        <div class="tree-line">├── src/</div>
+        <div class="tree-line">│   ├── auth.js</div>
+        <div class="tree-line">│   ├── api.js</div>
+        <div class="tree-line active">│   └── project-utils.js</div>
+        <div class="tree-line">├── components/</div>
+        <div class="tree-line">│   └── UserCard.js</div>
+        <div class="tree-line">└── README.md</div>
+      </aside>
+
+      <section class="editor-shell">
+        <button id="assistantToggle" class="assistant-toggle" title="Toggle LEXI Assistant">‹</button>
+        <div class="editor-tab">project-utils.js</div>
+        <div class="workbench" id="workbench">
+          <div class="editor-wrap" id="editorWrap">
+            <div class="editor-grid">
+              <div class="line-numbers" id="lineNumbers"></div>
+              <div class="code-pane">
+                <pre class="readonly-code" id="readonlyCode"></pre>
+                <div id="activeZone" contenteditable="true" spellcheck="false"></div>
+              </div>
+            </div>
+            <div class="popup" id="popup" hidden></div>
+          </div>
+
+          <aside id="assistantPanel" class="assistant-panel">
+            <div class="assistant-header">LEXI ASSISTANT</div>
+            <div class="assistant-tabs">
+              <button class="assistant-tab-btn active" data-tab="suggestions">
+                Suggestions <span id="suggestionCount" class="badge">0</span>
+              </button>
+            </div>
+            <div id="tabSuggestions" class="assistant-tab-content active"></div>
+          </aside>
+        </div>
+      </section>
+    </div>
+
+    <div class="statusbar">
+      <div class="status-left">
+        <span>LEXI Active</span>
+        <span>main</span>
+      </div>
+      <div class="status-right">
+        <span id="cursorPos">Ln 1, Col 1</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/data.js"></script>
+  <script src="./js/scanner.js"></script>
+  <script src="./js/ui.js"></script>
+  <script src="./js/main.js"></script>
+</body>
+</html>
