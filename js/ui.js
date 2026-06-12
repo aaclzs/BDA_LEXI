@@ -34,11 +34,16 @@
     selection.addRange(range);
   }
 
+  function countTextLines(text) {
+    if (!text) return 0;
+    return text.split("\n").length;
+  }
+
   function updateLineNumbers(lineNumbersEl, readonly, active) {
-    const all = [];
-    const count = readonly.split("\n").length + active.split("\n").length;
-    for (let i = 1; i <= count; i += 1) all.push(i);
-    lineNumbersEl.textContent = all.join("\n");
+    const total = countTextLines(readonly) + countTextLines(active);
+    const lineCount = Math.max(total, 1);
+    const lines = Array.from({ length: lineCount }, (_, i) => String(i + 1));
+    lineNumbersEl.textContent = lines.join("\n");
   }
 
   function escapeHtml(text) {
@@ -54,7 +59,7 @@
       const resolvedSuggestion = f.suggestion || "No suggestion available";
       const desc = f.type === "typo"
         ? `${resolvedSuggestion} is the correct spelling.`
-        : `Use "${resolvedSuggestion}" as standardized in this project.`;
+        : `Use "${resolvedSuggestion}" — this team's preferred term from learned vocabulary.`;
       return `<article class="assistant-card" data-jump-id="${f.id}">
         <div class="assistant-row">
           <span class="bullet ${f.type}"></span>

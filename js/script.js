@@ -1,11 +1,15 @@
 (function () {
   const state = {
-    activeText: window.LEXI_DATA.initialActiveCode,
+    teams: [],
+    currentTeam: null,
+    scannerContext: null,
+    readOnlyCode: "",
+    activeText: "",
     typoMap: {},
-    teamTerms: window.LEXI_SCANNER.extractTeamTermsFromCode(),
     flags: [],
     dismissed: new Set(),
-    openFlagId: null
+    openFlagId: null,
+    datasetSize: 0
   };
 
   const readonlyCodeEl = document.getElementById("readonlyCode");
@@ -14,12 +18,32 @@
   const popup = document.getElementById("popup");
   const cursorPos = document.getElementById("cursorPos");
   const tabSuggestions = document.getElementById("tabSuggestions");
+  const tabVocabulary = document.getElementById("tabVocabulary");
   const suggestionCount = document.getElementById("suggestionCount");
   const assistantPanel = document.getElementById("assistantPanel");
-  const assistantToggle = document.getElementById("assistantToggle");
+  const assistantClose = document.getElementById("assistantClose");
+  const assistantReopen = document.getElementById("assistantReopen");
+  const editorShell = document.querySelector(".editor-shell");
   const workbench = document.getElementById("workbench");
+  const teamList = document.getElementById("teamList");
+  const teamVocabList = document.getElementById("teamVocabList");
+  const datasetInfo = document.getElementById("datasetInfo");
+  const teamStatus = document.getElementById("teamStatus");
+
+  const TEAM_DISPLAY_NAMES = {
+    "team-a": "Team A Simulation",
+    "team-b": "Team B Simulation",
+    "team-c": "Team C Simulation"
+  };
 
   let debounceTimer = null;
+
+  function setAssistantPanelOpen(isOpen) {
+    workbench.classList.toggle("panel-closed", !isOpen);
+    assistantPanel.setAttribute("aria-hidden", isOpen ? "false" : "true");
+    if (editorShell) editorShell.classList.toggle("assistant-closed", !isOpen);
+    if (assistantReopen) assistantReopen.hidden = isOpen;
+  }
 
   function closePopup() {
     popup.hidden = true;
@@ -29,6 +53,30 @@
 
   function replaceRange(text, start, end, value) {
     return text.slice(0, start) + value + text.slice(end);
+  }
+
+  function renderTeamVocabulary(team) {
+    if (!teamVocabList || !team) return;
+    const learned = state.scannerContext?.learnedTerms || [];
+    const chips = learned.slice(0, 12).map((term) => (
+      `<span class="term-chip" title="Used in Members 1–3 comments and strings">${term}</span>`
+    )).join("");
+    const sampleAlternates = ["error", "file", "data", "actor"]
+      .map((key) => team.alternates[key])
+      .filter((alt) => alt && !learned.includes(alt))
+      .slice(0, 3);
+
+    teamVocabList.innerHTML = `
+      <div class="assistant-desc" style="margin-bottom:8px;">
+        Terms LEXI learned from Members 1–3 comments and string literals:
+      </div>
+      <div>${chips || '<span class="assistant-desc">No learned terms yet.</span>'}</div>
+      <div class="assistant-desc" style="margin-top:12px;">
+        ${sampleAlternates.length
+    ? `Try typing alternate terms like "${sampleAlternates.join('", "')}" in comments or strings.`
+    : "Type a non-team term in a comment or string to see suggestions."}
+      </div>
+    `;
   }
 
   function refreshPanel() {
@@ -60,15 +108,47 @@
     state.flags = window.LEXI_SCANNER.tokenizeFlags(
       state.activeText,
       state.typoMap,
-      state.teamTerms,
+      state.scannerContext,
       state.dismissed
     );
     activeZone.innerHTML = window.LEXI_SCANNER.paintWithSyntaxAndFlags(state.activeText, state.flags);
     if (keepCaret) window.LEXI_UI.setCaretOffset(activeZone, caret);
-    window.LEXI_UI.updateLineNumbers(lineNumbers, window.LEXI_DATA.readOnlyCode, state.activeText);
-    window.LEXI_UI.updateCursorPosition(cursorPos, state.activeText, window.LEXI_DATA.readOnlyCode, activeZone);
+    window.LEXI_UI.updateLineNumbers(lineNumbers, state.readOnlyCode, state.activeText);
+    window.LEXI_UI.updateCursorPosition(cursorPos, state.activeText, state.readOnlyCode, activeZone);
     refreshPanel();
     closePopup();
+  }
+
+  function applyTeam(team, resetEditor) {
+    state.currentTeam = team;
+    state.readOnlyCode = `${team.memberCode}
+
+// ──────────────────────────────────────────────────────
+// Member 4 starts here ↓ (LEXI is active — you are the new contributor)
+// ──────────────────────────────────────────────────────
+`;
+    state.scannerContext = window.LEXI_SCANNER.createScannerContext(team);
+    readonlyCodeEl.textContent = state.readOnlyCode;
+    team.learnedTerms = state.scannerContext.learnedTerms;
+
+    if (resetEditor) {
+      state.activeText = team.member4Starter;
+      state.dismissed.clear();
+      activeZone.innerText = state.activeText;
+    }
+
+    updateTeamListSelection(team.id);
+    if (teamStatus) {
+      teamStatus.textContent = TEAM_DISPLAY_NAMES[team.id] || team.label;
+    }
+    renderTeamVocabulary(team);
+    scanAndRender(false);
+  }
+
+  function switchTeam(teamId) {
+    const team = state.teams.find((t) => t.id === teamId);
+    if (!team || team.id === state.currentTeam?.id) return;
+    applyTeam(team, true);
   }
 
   function openPopup(flag, targetEl) {
@@ -86,7 +166,7 @@
           selectedTerm,
           true,
           state.typoMap,
-          state.teamTerms
+          state.scannerContext
         );
         if (selectedResolution && selectedResolution.type === "term") {
           state.dismissed.add(
@@ -114,7 +194,7 @@
           chosenTerm,
           true,
           state.typoMap,
-          state.teamTerms
+          state.scannerContext
         );
         if (chosenResolution && chosenResolution.type === "term") {
           state.dismissed.add(
@@ -149,15 +229,18 @@
     activeZone.addEventListener("input", () => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(syncFromEditor, 500);
-      window.LEXI_UI.updateCursorPosition(cursorPos, state.activeText, window.LEXI_DATA.readOnlyCode, activeZone);
+      const liveText = activeZone.innerText.replace(/\r/g, "");
+      const liveActive = liveText.endsWith("\n") ? liveText.slice(0, -1) : liveText;
+      window.LEXI_UI.updateLineNumbers(lineNumbers, state.readOnlyCode, liveActive);
+      window.LEXI_UI.updateCursorPosition(cursorPos, liveActive, state.readOnlyCode, activeZone);
     });
 
     activeZone.addEventListener("keyup", () => {
-      window.LEXI_UI.updateCursorPosition(cursorPos, state.activeText, window.LEXI_DATA.readOnlyCode, activeZone);
+      window.LEXI_UI.updateCursorPosition(cursorPos, state.activeText, state.readOnlyCode, activeZone);
     });
 
     activeZone.addEventListener("mouseup", () => {
-      window.LEXI_UI.updateCursorPosition(cursorPos, state.activeText, window.LEXI_DATA.readOnlyCode, activeZone);
+      window.LEXI_UI.updateCursorPosition(cursorPos, state.activeText, state.readOnlyCode, activeZone);
     });
 
     activeZone.addEventListener("click", (e) => {
@@ -183,10 +266,34 @@
       setTimeout(() => { target.style.background = ""; }, 750);
     });
 
-    assistantToggle.addEventListener("click", () => {
-      const closed = workbench.classList.toggle("panel-closed");
-      assistantPanel.setAttribute("aria-hidden", closed ? "true" : "false");
-      assistantToggle.textContent = closed ? "›" : "‹";
+    if (teamList) {
+      teamList.addEventListener("click", (e) => {
+        const option = e.target.closest(".team-option");
+        if (!option) return;
+        switchTeam(option.dataset.teamId);
+      });
+    }
+
+    if (assistantClose) {
+      assistantClose.addEventListener("click", () => {
+        setAssistantPanelOpen(false);
+      });
+    }
+
+    if (assistantReopen) {
+      assistantReopen.addEventListener("click", () => {
+        setAssistantPanelOpen(true);
+      });
+    }
+
+    document.querySelectorAll(".assistant-tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll(".assistant-tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+        document.querySelectorAll(".assistant-tab-content").forEach((panel) => {
+          panel.classList.toggle("active", panel.id === `tab${tab.charAt(0).toUpperCase()}${tab.slice(1)}`);
+        });
+      });
     });
 
     document.addEventListener("click", (e) => {
@@ -196,13 +303,52 @@
     });
   }
 
+  function populateTeamList(teams) {
+    if (!teamList) return;
+    teamList.innerHTML = teams.map((team) => (
+      `<li role="option">
+        <button type="button" class="team-option" data-team-id="${team.id}">
+          ${TEAM_DISPLAY_NAMES[team.id] || team.label}
+        </button>
+      </li>`
+    )).join("");
+  }
+
+  function updateTeamListSelection(teamId) {
+    if (!teamList) return;
+    teamList.querySelectorAll(".team-option").forEach((btn) => {
+      const isActive = btn.dataset.teamId === teamId;
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+  }
+
   async function init() {
-    readonlyCodeEl.textContent = window.LEXI_DATA.readOnlyCode;
-    activeZone.innerText = state.activeText;
-    const data = await window.LEXI_DATA.loadLexiData();
-    state.typoMap = data.typoMap;
-    bindEvents();
-    scanAndRender(false);
+    try {
+      const data = await window.LEXI_DATA.loadLexiData();
+      state.teams = data.teams;
+      state.typoMap = data.typoMap;
+      state.datasetSize = data.datasetSize;
+
+      if (datasetInfo) {
+        datasetInfo.textContent = [
+          `${data.datasetSize.toLocaleString()} CSV rows`,
+          `${data.standardTermCount.toLocaleString()} standard terms`,
+          `${data.typoCount.toLocaleString()} typo candidates`
+        ].join(" · ");
+      }
+
+      populateTeamList(data.teams);
+      bindEvents();
+      setAssistantPanelOpen(true);
+      applyTeam(data.teams[0], true);
+    } catch (err) {
+      if (datasetInfo) {
+        datasetInfo.textContent = `Dataset load failed: ${err.message}. Serve via Live Server to load LEXI_Data_Mining_Summary.csv.`;
+      }
+      bindEvents();
+      setAssistantPanelOpen(true);
+    }
   }
 
   init();

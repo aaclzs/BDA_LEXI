@@ -8,30 +8,104 @@
 </head>
 <body>
   <div class="app">
-    <div class="titlebar">
-      <div class="window-controls">
-        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    <header class="menubar">
+      <div class="menubar-left">
+        <div class="app-icon" aria-hidden="true">
+          <img src="./assets/download.png" alt="" class="app-icon-img">
+        </div>
+        <nav class="menubar-menu" aria-label="Application menu">
+          <span class="menu-item">File</span>
+          <span class="menu-item">Edit</span>
+          <span class="menu-item">Selection</span>
+          <span class="menu-item">View</span>
+          <span class="menu-item">Go</span>
+          <span class="menu-item">Run</span>
+          <span class="menu-item menu-ellipsis" aria-label="More">...</span>
+        </nav>
       </div>
-      <div>project-utils.js - Visual Studio Code</div>
-      <div style="width:42px;"></div>
-    </div>
+      <div class="menubar-center">
+        <div class="search-title-bar" role="search">LT6</div>
+      </div>
+      <div class="menubar-right">
+        <button class="win-btn win-minimize" type="button" aria-label="Minimize" disabled></button>
+        <button class="win-btn win-maximize" type="button" aria-label="Maximize" disabled></button>
+        <button class="win-btn win-close" type="button" aria-label="Close" disabled></button>
+      </div>
+    </header>
 
     <div class="main">
-      <aside class="sidebar">
-        <h3>Explorer</h3>
-        <div class="tree-line">project/</div>
-        <div class="tree-line">├── src/</div>
-        <div class="tree-line">│   ├── auth.js</div>
-        <div class="tree-line">│   ├── api.js</div>
-        <div class="tree-line active">│   └── project-utils.js</div>
-        <div class="tree-line">├── components/</div>
-        <div class="tree-line">│   └── UserCard.js</div>
-        <div class="tree-line">└── README.md</div>
+      <aside class="activity-bar" aria-label="Activity Bar">
+        <div class="activity-bar-top">
+          <button class="activity-icon active" type="button" aria-label="Explorer" title="Explorer">
+            <img src="./assets/copy-alt-svgrepo-com.svg" alt="" class="activity-icon-img">
+          </button>
+          <button class="activity-icon" type="button" aria-label="Search" title="Search">
+            <img src="./assets/search-svgrepo-com.svg" alt="" class="activity-icon-img">
+          </button>
+          <button class="activity-icon" type="button" aria-label="Source Control" title="Source Control">
+            <img src="./assets/source-control-svgrepo-com.svg" alt="" class="activity-icon-img">
+          </button>
+          <button class="activity-icon" type="button" aria-label="Run and Debug" title="Run and Debug">
+            <img src="./assets/debug-alt-svgrepo-com.svg" alt="" class="activity-icon-img">
+          </button>
+          <button class="activity-icon" type="button" aria-label="Extensions" title="Extensions">
+            <img src="./assets/extensions-svgrepo-com.svg" alt="" class="activity-icon-img">
+          </button>
+        </div>
+        <div class="activity-bar-bottom">
+          <button class="activity-icon" type="button" aria-label="Accounts" title="Accounts">
+            <img src="./assets/user-circle-svgrepo-com.svg" alt="" class="activity-icon-img">
+          </button>
+          <button class="activity-icon" type="button" aria-label="Manage" title="Manage">
+            <img src="./assets/setting-svgrepo-com.svg" alt="" class="activity-icon-img">
+          </button>
+        </div>
+      </aside>
+
+      <aside class="sidebar explorer-sidebar">
+        <div class="explorer-header">EXPLORE</div>
+
+        <details class="sidebar-collapsible" open>
+          <summary class="sidebar-collapsible-title">
+            <span class="sidebar-chevron" aria-hidden="true"></span>
+            <span class="sidebar-section-label">LT6</span>
+          </summary>
+          <div class="sidebar-collapsible-body">
+            <div class="explorer-file active">project-utils.js</div>
+            <div class="explorer-file">mock-script.js</div>
+            <div class="explorer-file">team-profile.js</div>
+          </div>
+        </details>
+
+        <details class="sidebar-collapsible">
+          <summary class="sidebar-collapsible-title">
+            <span class="sidebar-chevron" aria-hidden="true"></span>
+            <span class="sidebar-section-label">OUTLINE</span>
+          </summary>
+          <div class="sidebar-collapsible-body">
+            <p class="sidebar-empty">No symbols found in document</p>
+          </div>
+        </details>
+
+        <details class="sidebar-collapsible" open>
+          <summary class="sidebar-collapsible-title">
+            <span class="sidebar-chevron" aria-hidden="true"></span>
+            <span class="sidebar-section-label">TEAM ENVIRONMENT</span>
+          </summary>
+          <div class="sidebar-collapsible-body">
+            <ul id="teamList" class="team-list" role="listbox" aria-label="Select team simulation"></ul>
+            <p id="datasetInfo" class="dataset-info">Loading dataset…</p>
+          </div>
+        </details>
       </aside>
 
       <section class="editor-shell">
-        <button id="assistantToggle" class="assistant-toggle" title="Toggle LEXI Assistant">‹</button>
-        <div class="editor-tab">project-utils.js</div>
+        <div class="editor-tab-bar">
+          <div class="editor-tab">project-utils.js</div>
+          <button id="assistantReopen" class="assistant-reopen" type="button" hidden aria-label="Open LEXI Assistant" title="Open LEXI Assistant">
+            <span class="assistant-reopen-icon" aria-hidden="true"></span>
+          </button>
+        </div>
         <div class="workbench" id="workbench">
           <div class="editor-wrap" id="editorWrap">
             <div class="editor-grid">
@@ -45,13 +119,20 @@
           </div>
 
           <aside id="assistantPanel" class="assistant-panel">
-            <div class="assistant-header">LEXI ASSISTANT</div>
+            <div class="assistant-header">
+              <span class="assistant-title">LEXI ASSISTANT</span>
+              <button id="assistantClose" class="assistant-close" type="button" aria-label="Close LEXI Assistant">✕</button>
+            </div>
             <div class="assistant-tabs">
               <button class="assistant-tab-btn active" data-tab="suggestions">
                 Suggestions <span id="suggestionCount" class="badge">0</span>
               </button>
+              <button class="assistant-tab-btn" data-tab="vocabulary">Vocabulary</button>
             </div>
             <div id="tabSuggestions" class="assistant-tab-content active"></div>
+            <div id="tabVocabulary" class="assistant-tab-content">
+              <div id="teamVocabList"></div>
+            </div>
           </aside>
         </div>
       </section>
@@ -60,6 +141,7 @@
     <div class="statusbar">
       <div class="status-left">
         <span>LEXI Active</span>
+        <span id="teamStatus">Team A</span>
         <span>main</span>
       </div>
       <div class="status-right">

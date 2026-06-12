@@ -1,188 +1,12 @@
 (function () {
-  const PREWRITTEN_MEMBERS_CODE = `// ─────────────────────────────────────────
-// Member 1: User authentication module
-// ─────────────────────────────────────────
-
-const authenticate = (user, password) => {
-  if (!user || !password) {
-    console.error("Missing credentials");
-    return null;
-  }
-  const token = generateToken(user);
-  store.set("auth_token", token);
-  return token;
-};
-
-const validateUser = (user) => {
-  if (!user.name || !user.email) {
-    console.error("Invalid user data");
-    return false;
-  }
-  return true;
-};
-
-// ─────────────────────────────────────────
-// Member 2: API and data fetching
-// ─────────────────────────────────────────
-
-const fetchData = async (endpoint, method = "GET") => {
-  const response = await fetch(endpoint, { method });
-  if (!response.ok) {
-    throw new Error(\`Server error: \${response.status}\`);
-  }
-  const data = await response.json();
-  return data;
-};
-
-  store.set("last_response", data);
-  return data;
-};
-
-const fetchUserProfile = async (userId) => {
-  const data = await fetchData(\`/api/users/\${userId}\`);
-  store.set("current_user", data);
-  return data;
-};
-
-// ─────────────────────────────────────────
-// Member 3: Display and output utilities
-// ─────────────────────────────────────────
-
-const displayResult = (result) => {
-  console.log("Result:", result);
-  store.set("display_cache", result);
-};
-
-const displayError = (error) => {
-  console.error("Error occurred:", error.message);
-  store.set("last_error", error);
-};
-
-const fetchConfig = async () => {
-  const config = await fetchData("/api/config");
-  store.set("app_config", config);
-  return config;
-};`;
-
-  const synonymMap = {
-    // Information / data related
-    info: ["data", "information"],
-    infos: ["data", "information"],
-    details: ["data", "information"],
-    detail: ["data", "information"],
-    metadata: ["data", "information"],
-
-    // Retrieve / get / fetch related
-    get: ["fetch", "load", "get", "retrieve", "obtain"],
-    getting: ["fetch"],
-    grab: ["fetch", "load", "get", "retrieve", "obtain"],
-    grabbing: ["fetch"],
-    pull: ["fetch", "load", "get", "retrieve", "obtain"],
-    pulling: ["fetch"],
-    obtain: ["fetch", "load", "get", "retrieve", "obtain"],
-    obtaining: ["fetch"],
-    load: ["fetch", "load", "get", "retrieve", "obtain"],
-    loading: ["fetch"],
-    retrieve: ["fetch", "load", "get", "retrieve", "obtain"],
-    retrieving: ["fetch", "load", "get", "retrieve", "obtain"],
-    read: ["fetch", "load", "get", "retrieve", "obtain"],
-
-    // Display / show / print related
-    display: ["print", "send"],
-    displaying: ["print", "send"],
-    show: ["send", "print"],
-    showing: ["send", "print"],
-    output: ["print", "send"],
-    render: ["print", "send"],
-    rendering: ["print", "send"],
-    log: ["print", "send"],
-    logging: ["print", "send"],
-
-    // Store / save related
-    save: ["store"],
-    saving: ["store"],
-    persist: ["store"],
-    persisting: ["store"],
-    write: ["store"],
-    cache: ["store"],
-
-    // Error / issue related
-    issue: ["error"],
-    bug: ["error"],
-    fault: ["error"],
-    problem: ["error"],
-    exception: ["error"],
-
-    // Send / request related
-    post: ["send"],
-    posting: ["send"],
-    emit: ["send"],
-    emitting: ["send"],
-    dispatch: ["send"],
-    transmit: ["send"],
-
-    // Check / validate related
-    validate: ["check"],
-    validating: ["check"],
-    verify: ["check"],
-    verifying: ["check"],
-    ensure: ["check"],
-    look: ["check"],
-
-    // Delete / remove related
-    remove: ["delete"],
-    removing: ["delete"],
-    clear: ["delete"],
-    clearing: ["delete"],
-    erase: ["delete"],
-
-    // Build / create related
-    create: ["build"],
-    creating: ["build"],
-    make: ["validate", "build"],
-    making: ["validate", "build"],
-    generate: ["build"],
-    generating: ["build"],
-    initialize: ["build"],
-    init: ["build"],
-
-    // Update / modify related
-    modify: ["update"],
-    modifying: ["update"],
-    edit: ["update"],
-    editing: ["update"],
-    change: ["update"],
-    changing: ["update"],
-    alter: ["update"],
-
-    // User related
-    client: ["user"],
-    member: ["user"],
-    account: ["user"],
-
-    // Execute / run related
-    run: ["execute"],
-    running: ["execute"],
-    call: ["execute"],
-    calling: ["execute"],
-    invoke: ["execute"],
-    trigger: ["execute"],
-
-    // Connect related
-    link: ["connect"],
-    linking: ["connect"],
-    attach: ["connect"],
-    attaching: ["connect"],
-    bind: ["connect"]
-  };
-
   const stopWords = new Set([
     "if", "else", "return", "const", "let", "var", "new", "true", "false", "null",
     "undefined", "async", "await", "function", "throw", "for", "while", "do", "switch",
     "case", "break", "continue", "this", "typeof", "instanceof", "import", "export",
     "default", "class", "extends", "super", "try", "catch", "finally", "the", "a", "an",
     "is", "in", "of", "to", "and", "or", "not", "with", "from", "by", "at", "on", "be",
-    "it", "that"
+    "it", "that", "for", "using", "make", "sure", "its", "was", "before", "after",
+    "missing", "invalid", "server", "occurred", "result", "loaded", "path", "reading"
   ]);
 
   const keywords = new Set([
@@ -190,10 +14,6 @@ const fetchConfig = async () => {
     "new", "null", "true", "false", "function", "for", "while", "class", "try",
     "catch", "switch", "case", "break", "continue"
   ]);
-
-  function lineStartsWithComment(line) {
-    return /^\s*\/\//.test(line);
-  }
 
   function dismissKey(word, type, suggestion) {
     return `${word.toLowerCase()}|${type}|${(suggestion || "").toLowerCase()}`;
@@ -210,116 +30,218 @@ const fetchConfig = async () => {
     if (!token) return "";
     if (token.endsWith("es") && token.length > 4) return token.slice(0, -2);
     if (token.endsWith("s") && token.length > 3) return token.slice(0, -1);
+    if (token.endsWith("ing") && token.length > 5) return token.slice(0, -3);
     return token;
   }
 
-  function splitIdentifierParts(token) {
-    return token
-      .replace(/([a-z])([A-Z])/g, "$1 $2")
-      .replace(/[_-]/g, " ")
-      .split(/\s+/)
-      .filter(Boolean);
+  function collectTextContentRegions(text) {
+    const regions = [];
+    let i = 0;
+    let mode = "code";
+    let quote = "";
+    let regionStart = 0;
+
+    function closeRegion(end) {
+      if (end > regionStart) regions.push([regionStart, end]);
+    }
+
+    while (i < text.length) {
+      const ch = text[i];
+      const next = text[i + 1];
+
+      if (mode === "code") {
+        if (ch === "/" && next === "/") {
+          regionStart = i + 2;
+          mode = "linecomment";
+          i += 2;
+          continue;
+        }
+        if (ch === "/" && next === "*") {
+          regionStart = i + 2;
+          mode = "blockcomment";
+          i += 2;
+          continue;
+        }
+        if (ch === '"' || ch === "'" || ch === "`") {
+          quote = ch;
+          regionStart = i + 1;
+          mode = "string";
+          i += 1;
+          continue;
+        }
+        i += 1;
+        continue;
+      }
+
+      if (mode === "linecomment") {
+        if (ch === "\n") {
+          closeRegion(i);
+          mode = "code";
+        }
+        i += 1;
+        continue;
+      }
+
+      if (mode === "blockcomment") {
+        if (ch === "*" && next === "/") {
+          closeRegion(i);
+          mode = "code";
+          i += 2;
+          continue;
+        }
+        i += 1;
+        continue;
+      }
+
+      if (mode === "string") {
+        if (ch === "\\" && i + 1 < text.length) {
+          i += 2;
+          continue;
+        }
+        if (ch === quote) {
+          closeRegion(i);
+          mode = "code";
+          quote = "";
+        }
+        i += 1;
+      }
+    }
+
+    if (mode === "linecomment" || mode === "blockcomment" || mode === "string") {
+      closeRegion(text.length);
+    }
+
+    return regions;
   }
 
-  function extractTeamTermsFromCode() {
-    const freq = new Map();
-    const wordRegex = /[A-Za-z][A-Za-z0-9_]*/g;
-    let match;
-    while ((match = wordRegex.exec(PREWRITTEN_MEMBERS_CODE)) !== null) {
-      const parts = splitIdentifierParts(match[0]);
-      parts.forEach((part) => {
-        const normalized = normalizeTeamTerm(part);
-        if (!normalized || stopWords.has(normalized)) return;
-        freq.set(normalized, (freq.get(normalized) || 0) + 1);
-      });
-    }
+  function isOffsetInRegions(offset, regions) {
+    return regions.some(([start, end]) => offset >= start && offset < end);
+  }
+
+  function extractWordsFromRegions(text, regions) {
+    const frequency = new Map();
     const terms = new Set();
-    freq.forEach((count, term) => {
-      if (count >= 2) terms.add(term);
-    });
-    return terms;
-  }
 
-  const TEAM_TERM_FREQUENCY = (() => {
-    const freq = new Map();
-    const wordRegex = /[A-Za-z][A-Za-z0-9_]*/g;
-    let match;
-    while ((match = wordRegex.exec(PREWRITTEN_MEMBERS_CODE)) !== null) {
-      const parts = splitIdentifierParts(match[0]);
-      parts.forEach((part) => {
-        const normalized = normalizeTeamTerm(part);
-        if (!normalized || stopWords.has(normalized)) return;
-        freq.set(normalized, (freq.get(normalized) || 0) + 1);
-      });
-    }
-    return freq;
-  })();
-
-  function getRankLabel(rank) {
-    if (rank === 0) return "Most appropriate";
-    if (rank <= 2) return "Good alternative";
-    return "Domain term";
-  }
-
-  function rankRecommendations(candidates) {
-    const unique = [];
-    const seen = new Set();
-    candidates.forEach((c) => {
-      const n = normalizeLookupWord(c);
-      if (n && !seen.has(n)) {
-        seen.add(n);
-        unique.push(n);
+    regions.forEach(([start, end]) => {
+      const slice = text.slice(start, end);
+      const wordRegex = /[A-Za-z][A-Za-z']*/g;
+      let match;
+      while ((match = wordRegex.exec(slice)) !== null) {
+        const normalized = normalizeTeamTerm(match[0]);
+        if (!normalized || stopWords.has(normalized)) continue;
+        terms.add(normalized);
+        frequency.set(normalized, (frequency.get(normalized) || 0) + 1);
       }
     });
+
+    return { terms, frequency };
+  }
+
+  function extractLearnedVocabulary(memberCode) {
+    const regions = collectTextContentRegions(memberCode || "");
+    return extractWordsFromRegions(memberCode || "", regions);
+  }
+
+  function createScannerContext(team) {
+    const memberCode = team.memberCode || "";
+    const learned = extractLearnedVocabulary(memberCode);
+    return {
+      teamTerms: learned.terms,
+      teamTermFrequency: learned.frequency,
+      synonymMap: team.synonymMap || {},
+      learnedTerms: [...learned.terms].sort((a, b) => (
+        (learned.frequency.get(b) || 0) - (learned.frequency.get(a) || 0)
+      ))
+    };
+  }
+
+  function getRankLabel(rank) {
+    if (rank === 0) return "Team standard";
+    if (rank <= 2) return "Learned term";
+    return "Team usage";
+  }
+
+  function rankLearnedRecommendations(candidates, teamTerms, teamTermFrequency) {
+    const unique = [];
+    const seen = new Set();
+
+    candidates.forEach((candidate) => {
+      const normalized = normalizeLookupWord(candidate);
+      if (!normalized || seen.has(normalized)) return;
+      if (!teamTerms.has(normalized)) return;
+      if ((teamTermFrequency.get(normalized) || 0) <= 0) return;
+      seen.add(normalized);
+      unique.push(normalized);
+    });
+
     unique.sort((a, b) => {
-      const fb = TEAM_TERM_FREQUENCY.get(b) || 0;
-      const fa = TEAM_TERM_FREQUENCY.get(a) || 0;
+      const fb = teamTermFrequency.get(b) || 0;
+      const fa = teamTermFrequency.get(a) || 0;
       if (fb !== fa) return fb - fa;
       return candidates.indexOf(a) - candidates.indexOf(b);
     });
+
     return unique.slice(0, 5).map((term, idx) => ({
       term,
       label: getRankLabel(idx),
       rank: idx + 1,
-      frequency: TEAM_TERM_FREQUENCY.get(term) || 0
+      frequency: teamTermFrequency.get(term) || 0
     }));
   }
 
-  function getSuggestionForToken(rawWord, isComment, typoMap, teamTerms) {
+  function resolveTypoSuggestion(normalized, typoMap) {
+    if (Object.prototype.hasOwnProperty.call(typoMap, normalized)) {
+      return typoMap[normalized] || "No suggestion available";
+    }
+
+    const compact = normalized.replace(/-/g, "");
+    const typoEntry = Object.entries(typoMap).find(([typo]) => (
+      typo.replace(/-/g, "") === compact
+    ));
+    if (typoEntry) return typoEntry[1] || "No suggestion available";
+    return null;
+  }
+
+  function getSuggestionForToken(rawWord, termEligible, typoMap, scannerContext) {
     const normalized = normalizeLookupWord(rawWord);
     if (!normalized) return null;
 
-    if (Object.prototype.hasOwnProperty.call(typoMap, normalized)) {
+    const typoSuggestion = resolveTypoSuggestion(normalized, typoMap);
+    if (typoSuggestion) {
       return {
         type: "typo",
-        suggestion: typoMap[normalized] || "No suggestion available",
+        suggestion: typoSuggestion,
         normalized
       };
     }
 
-    if (!isComment) return null;
+    if (!termEligible) return null;
+
+    const { teamTerms, teamTermFrequency, synonymMap } = scannerContext;
+    if (teamTerms.has(normalized)) return null;
+
     const mappedCandidates = synonymMap[normalized];
     if (!mappedCandidates) return null;
-    if (teamTerms.has(normalized)) return null;
+
     const candidates = Array.isArray(mappedCandidates) ? mappedCandidates : [mappedCandidates];
-    const ranked = rankRecommendations(candidates);
-    const mapped = ranked.find((candidate) => teamTerms.has(candidate.term));
-    if (!mapped) return null;
+    const ranked = rankLearnedRecommendations(candidates, teamTerms, teamTermFrequency);
+    if (!ranked.length) return null;
 
     return {
       type: "term",
-      suggestion: mapped.term,
+      suggestion: ranked[0].term,
       normalized,
       recommendations: ranked
     };
   }
 
-  function tokenizeFlags(text, typoMap, teamTerms, dismissedSet) {
+  function tokenizeFlags(text, typoMap, scannerContext, dismissedSet) {
     const flags = [];
+    const textRegions = collectTextContentRegions(text);
     const lines = text.split("\n");
     let offset = 0;
+
     lines.forEach((line, lineIndex) => {
-      const isComment = lineStartsWithComment(line);
       const wordRegex = /[A-Za-z][A-Za-z']*/g;
       let match;
       while ((match = wordRegex.exec(line)) !== null) {
@@ -327,8 +249,10 @@ const fetchConfig = async () => {
         const word = rawWord.toLowerCase();
         const start = offset + match.index;
         const end = start + rawWord.length;
-        const resolution = getSuggestionForToken(rawWord, isComment, typoMap, teamTerms);
+        const termEligible = isOffsetInRegions(start, textRegions);
+        const resolution = getSuggestionForToken(rawWord, termEligible, typoMap, scannerContext);
         if (!resolution) continue;
+
         const type = resolution.type;
         const suggestion = resolution.suggestion;
         const key = dismissKey(rawWord, type, suggestion);
@@ -348,6 +272,7 @@ const fetchConfig = async () => {
       }
       offset += line.length + 1;
     });
+
     return flags;
   }
 
@@ -403,7 +328,27 @@ const fetchConfig = async () => {
               }
               k += 1;
             }
-            out += `<span class="str">${escapeHtml(text.slice(j, k))}</span>`;
+            out += `<span class="str">${escapeHtml(quote)}`;
+            let p = j + 1;
+            while (p < k - 1) {
+              const innerFlag = flagByStart.get(p);
+              if (innerFlag && innerFlag.end <= k) {
+                out += `<span class="${innerFlag.type === "typo" ? "lexi-typo" : "lexi-term"}" data-flag-id="${innerFlag.id}">${escapeHtml(text.slice(innerFlag.start, innerFlag.end))}</span>`;
+                p = innerFlag.end;
+              } else {
+                out += escapeHtml(text[p]);
+                p += 1;
+              }
+            }
+            out += `${escapeHtml(quote)}</span>`;
+            j = k;
+            continue;
+          }
+          if (text.startsWith("/*", j)) {
+            let k = line.indexOf("*/", j + 2);
+            if (k === -1) k = lineStop;
+            else k += 2;
+            out += `<span class="com">${escapeHtml(text.slice(j, k))}</span>`;
             j = k;
             continue;
           }
@@ -442,6 +387,7 @@ const fetchConfig = async () => {
     paintWithSyntaxAndFlags,
     dismissKey,
     getSuggestionForToken,
-    extractTeamTermsFromCode
+    extractLearnedVocabulary,
+    createScannerContext
   };
 })();
